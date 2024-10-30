@@ -1,13 +1,12 @@
-package com.dreamgames.backendengineeringcasestudy.repository.model;
+package com.dreamgames.backendengineeringcasestudy.users.model;
 import jakarta.persistence.*;
 //example
 @Entity
-@Table(name ="user_progress")
+@Table(name = "users")
+
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    private String username;
+    private String id;
     private String country;
     private int level;
     private int coins;
@@ -36,19 +35,11 @@ public class User {
         this.coins = coins;
     }
 
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 }
