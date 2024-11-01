@@ -21,10 +21,9 @@ public class TournamentController {
     }
     @PostMapping("/create")
     public ResponseEntity<Tournament> createTournament(){
-        Tournament tournament = tournamentService.createTournament();
-        return new ResponseEntity<>(tournament,HttpStatus.OK);
+        Tournament response = tournamentService.createTournament();
+        return new ResponseEntity<>(response,HttpStatus.OK);
     }
-
     @PostMapping("/end")
     public ResponseEntity<?> endTournament(){
         return tournamentService.endTournament();

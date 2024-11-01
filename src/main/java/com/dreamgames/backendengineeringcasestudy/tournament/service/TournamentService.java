@@ -27,9 +27,6 @@ public class TournamentService {
     private final TournamentHelper tournamentHelper;
     private final UserRepository userRepository;
     private final RedisTemplate<String, TournamentGroup> groupRedisTemplate;
-    private final RedisTemplate<String, String> customStringRedisTemplate;
-
-
 
     @Autowired
     public TournamentService(
@@ -37,22 +34,13 @@ public class TournamentService {
             TournamentRepository tournamentRepository,
             TournamentHelper tournamentHelper,
             UserRepository userRepository,
-            @Qualifier("groupRedisTemplate") RedisTemplate<String, TournamentGroup> groupRedisTemplate,
-            @Qualifier("customStringRedisTemplate") RedisTemplate<String, String> customStringRedisTemplate) {
+            @Qualifier("groupRedisTemplate") RedisTemplate<String, TournamentGroup> groupRedisTemplate)
+            {
         this.tournamentParticipationRepository = tournamentParticipationRepository;
         this.tournamentRepository = tournamentRepository;
         this.tournamentHelper = tournamentHelper;
         this.userRepository = userRepository;
         this.groupRedisTemplate = groupRedisTemplate;
-        this.customStringRedisTemplate = customStringRedisTemplate;
-    }
-
-    private static final String GROUP_ASSIGNMENTS_KEY = "groupAssignments:";
-    private static final String TOURNAMENT_GROUPS_KEY = "tournamentGroups:";
-
-    @Scheduled(cron = "0 0 0 * * ?", zone = "UTC")
-    public void createDailyTournament() {
-        tournamentHelper.createDailyTournament();
     }
 
     public ResponseEntity<?> enterTournament(String userId) {
@@ -98,7 +86,7 @@ public class TournamentService {
             user.setCoins(user.getCoins() - 1000);
             userRepository.save(user);
 
-            TournamentGroup group = assignUserToGroup(user, activeTournament);
+            TournamentGroup group = tournamentHelper.assignUserToGroup(user, activeTournament);
             TournamentParticipation participation = new TournamentParticipation(
                     UUID.randomUUID().toString(),
                     userId,
@@ -119,64 +107,12 @@ public class TournamentService {
     }
 
     public Tournament createTournament() {
-        return tournamentHelper.createManuellyTournament();
+        return tournamentHelper.createTournament();
     }
     public ResponseEntity<?> endTournament(){
-        Map<String, Object> response = new HashMap<>();
-
-        Tournament activeTournament = tournamentRepository.findFirstByStatusOrderByStartTimeDesc("ACTIVE")
-                .orElse(null);
-        if(activeTournament == null){
-            response.put("message","No active tournament available");
-            return new ResponseEntity<>(response,HttpStatus.BAD_REQUEST);
-        }
-        List<TournamentGroup> groups = getGroupsForTournament(activeTournament.getId());
-        for (TournamentGroup group : groups) {
-            // Grubun katılımcılarını alın ve sıralayın
-            List<TournamentParticipation> participations = tournamentParticipationRepository.findByGroupId(group.getId());
-            participations.sort(Comparator.comparingInt(TournamentParticipation::getScore).reversed());
-
-            // İlk iki kullanıcıya ödül hakkı verin
-            TournamentParticipation participation = null;
-            for (int i = 0; i < participations.size(); i++) {
-                participation = participations.get(i);
-                if (i == 0) {
-                    participation.setRewardEligible(1);
-                } else if (i == 1) {
-                    participation.setRewardEligible(2);
-                } else {
-                    break;
-                }
-            }
-            tournamentParticipationRepository.save(participation);
-        }
-
-        // Turnuva durumunu güncelle
-        activeTournament.setStatus("FINISHED");
-        tournamentRepository.save(activeTournament);
-        response.put("message","Tournament has been end.");
-        return new ResponseEntity<>(response, HttpStatus.OK);
+        return tournamentHelper.endTournament();
     }
-    public List<TournamentGroup> getGroupsForTournament(String tournamentId) {
-        String tournamentGroupsKey = TOURNAMENT_GROUPS_KEY + tournamentId;
 
-        // Turnuvaya ait grup ID'lerini alıyoruz
-        Set<String> groupIds = customStringRedisTemplate.opsForSet().members(tournamentGroupsKey);
-        List<TournamentGroup> groups = new ArrayList<>();
-
-        if (groupIds != null && !groupIds.isEmpty()) {
-            // Grupları Redis'ten alıyoruz
-            for (String groupId : groupIds) {
-                String groupKey = GROUP_ASSIGNMENTS_KEY + groupId;
-                TournamentGroup group = groupRedisTemplate.opsForValue().get(groupKey);
-                if (group != null) {
-                    groups.add(group);
-                }
-            }
-        }
-
-        return groups;
-    }
     @Transactional
     public String claimReward(String userId) {
         Integer hasUnclaimedReward = tournamentParticipationRepository.findRewardEligibleByUserId(userId);
@@ -202,54 +138,8 @@ public class TournamentService {
         }
     }
 
-    public TournamentGroup assignUserToGroup(User user, Tournament tournament) {
-        String tournamentGroupsKey = TOURNAMENT_GROUPS_KEY + tournament.getId();
 
-        // İlgili turnuvanın grup ID'lerini alıyoruz
-        Set<String> groupIds = customStringRedisTemplate.opsForSet().members(tournamentGroupsKey);
-        List<TournamentGroup> groups = new ArrayList<>();
-
-        if (groupIds != null && !groupIds.isEmpty()) {
-            // Grupları Redis'ten alıyoruz
-            for (String groupId : groupIds) {
-                String groupKey = GROUP_ASSIGNMENTS_KEY + groupId;
-                TournamentGroup group = groupRedisTemplate.opsForValue().get(groupKey);
-                if (group != null) {
-                    groups.add(group);
-                }
-            }
-        }
-
-        // Uygun bir grup buluyoruz
-        TournamentGroup group = groups.stream()
-                .filter(g -> g.getUsers().size() < 5
-                        && !g.getUsers().containsValue(user.getCountry())
-                        && g.getTournamentId().equals(tournament.getId()))
-                .findFirst()
-                .orElseGet(() -> {
-                    // Yeni bir grup oluşturuyoruz
-                    TournamentGroup newGroup = new TournamentGroup(UUID.randomUUID().toString(), tournament.getId());
-                    saveGroupAssignments(newGroup.getId(), newGroup);
-                    addGroupIdToTournament(tournament.getId(), newGroup.getId());
-                    return newGroup;
-                });
-
-        // Kullanıcıyı gruba ekliyoruz
-        group.addUser(user.getId(), user.getCountry());
-        saveGroupAssignments(group.getId(), group);
-        return group;
-    }
-
-    public void saveGroupAssignments(String groupId, TournamentGroup group) {
-        String key = GROUP_ASSIGNMENTS_KEY + groupId;
-        groupRedisTemplate.opsForValue().set(key, group);
-    }
-
-    public void addGroupIdToTournament(String tournamentId, String groupId) {
-        String key = TOURNAMENT_GROUPS_KEY + tournamentId;
-        customStringRedisTemplate.opsForSet().add(key, groupId);
-    }
-
+    private static final String GROUP_ASSIGNMENTS_KEY = "groupAssignments:";
     public Map<String, Object> getGroupLeaderboard(String groupId) {
         String key = GROUP_ASSIGNMENTS_KEY + groupId;
         TournamentGroup group = groupRedisTemplate.opsForValue().get(key);
@@ -299,6 +189,4 @@ public class TournamentService {
                         LinkedHashMap::new
                 ));
     }
-
-
 }
