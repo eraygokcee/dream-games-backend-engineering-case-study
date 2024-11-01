@@ -21,6 +21,15 @@ public class TournamentHelper {
         tournament.setStatus("ACTIVE");
         tournamentRepository.save(tournament);
     }
+    public Tournament createManuellyTournament() {
+        Tournament tournament = new Tournament();
+        tournament.setId(UUID.randomUUID().toString());
+        tournament.setStartTime(LocalDateTime.now());
+        tournament.setEndTime(LocalDateTime.now().plusHours(20));
+        tournament.setStatus("ACTIVE");
+        tournamentRepository.save(tournament);
+        return tournament;
+    }
 
 
 }

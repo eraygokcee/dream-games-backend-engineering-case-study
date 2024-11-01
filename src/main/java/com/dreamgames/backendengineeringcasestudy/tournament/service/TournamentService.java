@@ -62,13 +62,7 @@ public class TournamentService {
     }
 
     public Tournament createTournament(){
-        Tournament tournament = new Tournament();
-        tournament.setId(UUID.randomUUID().toString());
-        tournament.setStartTime(LocalDateTime.now());
-        tournament.setEndTime(LocalDateTime.now().plusHours(20));
-        tournament.setStatus("ACTIVE");
-        tournamentRepository.save(tournament);
-        return tournament;
+        return tournamentHelper.createManuellyTournament();
     }
 
     public String claimReward(String userId) {
