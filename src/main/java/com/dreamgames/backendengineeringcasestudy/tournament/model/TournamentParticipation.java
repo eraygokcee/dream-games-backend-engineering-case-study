@@ -23,6 +23,8 @@ public class TournamentParticipation {
     private String groupId;
 
     private int score;
+    private int rewardEligible; //0 no reward , 1 first rank 2 second rank
+
 
     public TournamentParticipation() {}
 
@@ -34,6 +36,13 @@ public class TournamentParticipation {
         this.groupId = groupId;
         this.score = score;
         this.tournament = tournament;
+    }
+    public int getRewardEligible() {
+        return rewardEligible;
+    }
+
+    public void setRewardEligible(int rewardEligible) {
+        this.rewardEligible = rewardEligible;
     }
     // Getters and Setters
     public String getId() {

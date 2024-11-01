@@ -5,13 +5,14 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-@Entity
-@Table(name = "tournament_groups")
-public class TournamentGroup {
-    @Id
+
+public class TournamentGroup implements Serializable {
+    private static final long serialVersionUID = 1L;
     private String id;
     private String tournamentId;
 
@@ -47,9 +48,5 @@ public class TournamentGroup {
 
     public void addUser(String userId, String country) {
         users.put(userId, country);
-    }
-
-    public Map<String, String> getRankings() {
-        return users;
     }
 }

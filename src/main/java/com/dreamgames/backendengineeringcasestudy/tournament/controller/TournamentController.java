@@ -16,15 +16,20 @@ public class TournamentController {
     private TournamentService tournamentService;
 
     @PostMapping("/enter/{userId}")
-    public ResponseEntity<Tournament> enterTournament(@PathVariable String userId){
-        Tournament tournament = tournamentService.enterTournament(userId);
-        return new ResponseEntity<>(tournament, HttpStatus.OK);
+    public ResponseEntity<?> enterTournament(@PathVariable String userId){
+        return tournamentService.enterTournament(userId);
     }
-    @PostMapping("/")
+    @PostMapping("/create")
     public ResponseEntity<Tournament> createTournament(){
         Tournament tournament = tournamentService.createTournament();
         return new ResponseEntity<>(tournament,HttpStatus.OK);
     }
+
+    @PostMapping("/end")
+    public ResponseEntity<?> endTournament(){
+        return tournamentService.endTournament();
+    }
+
     @PostMapping("/claimReward/{userId}")
     public ResponseEntity<String> claimReward(@PathVariable String userId){
         String response = tournamentService.claimReward(userId);
@@ -36,9 +41,9 @@ public class TournamentController {
         Map<String,Object> response = tournamentService.getGroupLeaderboard(groupId);
         return new ResponseEntity<>(response,HttpStatus.OK);
     }
-    @GetMapping("/countryLeaderboard")
-    public ResponseEntity<Map<String, Integer>> getCountryLeaderboard() {
-        Map<String, Integer> leaderboard = tournamentService.getCountryLeaderboard();
+    @GetMapping("/countryLeaderboard/{tournamentId}")
+    public ResponseEntity<Map<String, Integer>> getCountryLeaderboard(@PathVariable String tournamentId) {
+        Map<String, Integer> leaderboard = tournamentService.getCountryLeaderboard(tournamentId);
         return new ResponseEntity<>(leaderboard, HttpStatus.OK);
     }
 }
