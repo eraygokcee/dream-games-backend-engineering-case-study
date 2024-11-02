@@ -1,5 +1,7 @@
 package com.dreamgames.backendengineeringcasestudy.tournament.helper;
 
+import com.dreamgames.backendengineeringcasestudy.exceptions.EnterTournamentExceptions;
+import com.dreamgames.backendengineeringcasestudy.exceptions.GetGroupLeaderboardExceptions;
 import com.dreamgames.backendengineeringcasestudy.tournament.model.Tournament;
 import com.dreamgames.backendengineeringcasestudy.tournament.model.TournamentGroup;
 import com.dreamgames.backendengineeringcasestudy.tournament.model.TournamentParticipation;
@@ -9,8 +11,6 @@ import com.dreamgames.backendengineeringcasestudy.users.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -51,19 +51,20 @@ public class TournamentHelper {
         return tournament;
     }
 
-    public ResponseEntity<?> endTournament(){
+    public String endTournament(){
         Map<String, Object> response = new HashMap<>();
 
         Tournament activeTournament = tournamentRepository.findFirstByStatusOrderByStartTimeDesc("ACTIVE")
-                .orElse(null);
-        if(activeTournament == null){
-            response.put("message","No active tournament available");
-            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-        }
+                .orElseThrow(()->new EnterTournamentExceptions.TournamentNotFoundException("No active tournament available"));
+
         //Ödül dağıt
         List<TournamentGroup> groups = getGroupsForTournament(activeTournament.getId());
         for (TournamentGroup group : groups) {
             List<TournamentParticipation> participations = tournamentParticipationRepository.findByGroupId(group.getId());
+
+            if(participations == null){
+                throw new GetGroupLeaderboardExceptions.GroupParticipationsNotFoundException("Group participation's not found");
+            }
             participations.sort(Comparator.comparingInt(TournamentParticipation::getScore).reversed());
 
             participations.get(0).setRewardEligible(1);
@@ -72,8 +73,7 @@ public class TournamentHelper {
         // Turnuva durumunu güncelle
         activeTournament.setStatus("FINISHED");
         tournamentRepository.save(activeTournament);
-        response.put("message","Tournament has been end.");
-        return new ResponseEntity<>(response, HttpStatus.OK);
+        return "Tournament has been end.";
     }
 
 
@@ -81,21 +81,17 @@ public class TournamentHelper {
     public TournamentGroup assignUserToGroup(User user, Tournament tournament) {
 
         List<TournamentGroup> groups = getGroupsForTournament(tournament.getId());
-        // Uygun bir grup buluyoruz
         TournamentGroup group = groups.stream()
                 .filter(g -> g.getUsers().size() < 5
                         && !g.getUsers().containsValue(user.getCountry())
                         && g.getTournamentId().equals(tournament.getId()))
                 .findFirst()
                 .orElseGet(() -> {
-                    // Yeni bir grup oluşturuyoruz
                     TournamentGroup newGroup = new TournamentGroup(UUID.randomUUID().toString(), tournament.getId());
                     saveGroupAssignments(newGroup.getId(), newGroup);
                     addGroupIdToTournament(tournament.getId(), newGroup.getId());
                     return newGroup;
                 });
-
-        // Kullanıcıyı gruba ekliyoruz
         group.addUser(user.getId(), user.getCountry());
         saveGroupAssignments(group.getId(), group);
         return group;
@@ -114,12 +110,10 @@ public class TournamentHelper {
     private List<TournamentGroup> getGroupsForTournament(String tournamentId) {
         String tournamentGroupsKey = TOURNAMENT_GROUPS_KEY + tournamentId;
 
-        // Turnuvaya ait grup ID'lerini alıyoruz
         Set<String> groupIds = customStringRedisTemplate.opsForSet().members(tournamentGroupsKey);
         List<TournamentGroup> groups = new ArrayList<>();
 
         if (groupIds != null && !groupIds.isEmpty()) {
-            // Grupları Redis'ten alıyoruz
             for (String groupId : groupIds) {
                 String groupKey = GROUP_ASSIGNMENTS_KEY + groupId;
                 TournamentGroup group = groupRedisTemplate.opsForValue().get(groupKey);

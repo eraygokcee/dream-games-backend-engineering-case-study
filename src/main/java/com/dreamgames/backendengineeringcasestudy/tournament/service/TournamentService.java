@@ -1,5 +1,9 @@
 package com.dreamgames.backendengineeringcasestudy.tournament.service;
 
+import com.dreamgames.backendengineeringcasestudy.dto.*;
+import com.dreamgames.backendengineeringcasestudy.exceptions.ClaimRewardExceptions;
+import com.dreamgames.backendengineeringcasestudy.exceptions.EnterTournamentExceptions;
+import com.dreamgames.backendengineeringcasestudy.exceptions.GetGroupLeaderboardExceptions;
 import com.dreamgames.backendengineeringcasestudy.tournament.helper.TournamentHelper;
 import com.dreamgames.backendengineeringcasestudy.tournament.model.Tournament;
 import com.dreamgames.backendengineeringcasestudy.tournament.model.TournamentGroup;
@@ -12,9 +16,6 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -43,46 +44,29 @@ public class TournamentService {
         this.groupRedisTemplate = groupRedisTemplate;
     }
 
-    public ResponseEntity<?> enterTournament(String userId) {
-
-        try{
-            Map<String, Object> response = new HashMap<>();
-
+    public EnterTournamentResponse enterTournament(String userId) {
             User user = userRepository.findById(userId)
-                    .orElse(null);
-            if(user == null){
-                response.put("message","User not found");
-                return new ResponseEntity<>(response,HttpStatus.BAD_REQUEST);
-            }
+                    .orElseThrow(() -> new EnterTournamentExceptions.UserNotFoundException("User not found"));
+
             Integer hasUnclaimedReward = tournamentParticipationRepository.findRewardEligibleByUserId(userId);
 
             if (hasUnclaimedReward != null ) {
-                response.put("message", "You have an unclaimed reward from a previous tournament. Please claim your reward before entering a new tournament.");
-                return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+                throw new EnterTournamentExceptions.UnclaimedRewardException("You have an unclaimed reward from a previous tournament. Please claim your reward before entering a new tournament.");
             }
             Tournament activeTournament = tournamentRepository.findFirstByStatusOrderByStartTimeDesc("ACTIVE")
-                    .orElse(null);
-            if(activeTournament == null){
-                response.put("message","No active tournament available");
-                return new ResponseEntity<>(response,HttpStatus.BAD_REQUEST);
-            }
+                    .orElseThrow(()->new EnterTournamentExceptions.TournamentNotFoundException("No active tournament available"));
 
             boolean existingParticipation = tournamentParticipationRepository
                     .existsByUserIdAndTournamentId(userId, activeTournament.getId());
-
             if (existingParticipation) {
-                response.put("message","User has already entered this tournament");
-                return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+                throw new EnterTournamentExceptions.HasAlreadyEnteredTournamentException("User has already entered this tournament.");
             }
             if (user.getLevel() < 20) {
-                response.put("message","User must be at least level 20 to enter the tournament");
-                return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+                throw new EnterTournamentExceptions.LowLevelException("User must be at least level 20 to enter the tournament");
             }
             if (user.getCoins() < 1000) {
-                response.put("message","User does not have enough coins to enter the tournament");
-                return new ResponseEntity<>(response,HttpStatus.BAD_REQUEST);
+                throw new EnterTournamentExceptions.LowBalanceException("User does not have enough coins to enter the tournament");
             }
-
             user.setCoins(user.getCoins() - 1000);
             userRepository.save(user);
 
@@ -95,67 +79,70 @@ public class TournamentService {
                     0,
                     activeTournament);
             tournamentParticipationRepository.save(participation);
-            response.put("message","User has successfully entered the tournament.");
-            response.put("tournament",activeTournament);
-            response.put("group",group.getId());
-            return new ResponseEntity<>(response,HttpStatus.OK);
-        }catch (Exception e){
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", e.getMessage());
-            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
 
+            EnterTournamentResponse response = new EnterTournamentResponse();
+            response.setTournament(activeTournament);
+            response.setMessage("User has successfully entered the tournament.");
+            response.setGroupLeaderboard(getGroupLeaderboard(group.getId()));
+            return response;
+    }
     public Tournament createTournament() {
         return tournamentHelper.createTournament();
     }
-    public ResponseEntity<?> endTournament(){
+    public String endTournament(){
         return tournamentHelper.endTournament();
     }
 
     @Transactional
-    public String claimReward(String userId) {
+    public ClaimRewardResponse claimReward(String userId) {
         Integer hasUnclaimedReward = tournamentParticipationRepository.findRewardEligibleByUserId(userId);
 
         if (hasUnclaimedReward == null) {
-            return "No rewards to claim.";
+            throw new ClaimRewardExceptions.NoClaimRewardException("There is no reward to be won");
         }
-
+        ClaimRewardResponse response = new ClaimRewardResponse();
         if(hasUnclaimedReward == 1 ){
             userRepository.findById(userId).ifPresent(user -> {
                 user.setCoins(user.getCoins() + 10000);
                 userRepository.save(user);
+                response.setMessage("You have won 10,000 coins!");
+                response.setUser(user);
             });
             tournamentParticipationRepository.updateRewardEligibleByUserId(userId);
-            return "You have won 10,000 coins!";
         }else{
             userRepository.findById(userId).ifPresent(user -> {
                 user.setCoins(user.getCoins() + 5000);
                 userRepository.save(user);
+                response.setMessage("You have won 5.000 coins");
+                response.setUser(user);
             });
             tournamentParticipationRepository.updateRewardEligibleByUserId(userId);
-            return "You have won 5.000 coins";
         }
+        return response;
     }
 
 
     private static final String GROUP_ASSIGNMENTS_KEY = "groupAssignments:";
-    public Map<String, Object> getGroupLeaderboard(String groupId) {
+    public GetGroupLeaderboardResponse getGroupLeaderboard(String groupId) {
         String key = GROUP_ASSIGNMENTS_KEY + groupId;
         TournamentGroup group = groupRedisTemplate.opsForValue().get(key);
 
         if (group == null) {
-            throw new RuntimeException("Group not found");
+            throw new GetGroupLeaderboardExceptions.GroupNotFoundException("Group Not Found");
         }
 
         List<TournamentParticipation> groupParticipations = tournamentParticipationRepository.findByGroupId(groupId);
+
+        if(groupParticipations == null){
+            throw new GetGroupLeaderboardExceptions.GroupParticipationsNotFoundException("Group participations not found");
+        }
 
         groupParticipations.sort(Comparator.comparingInt(TournamentParticipation::getScore).reversed());
 
         List<Map<String, Object>> rankings = groupParticipations.stream()
                 .map(participation -> {
                     User user = userRepository.findById(participation.getUserId())
-                            .orElseThrow(() -> new RuntimeException("User not found"));
+                            .orElseThrow(() -> new EnterTournamentExceptions.UserNotFoundException("User not found"));
                     Map<String, Object> userInfo = new HashMap<>();
                     userInfo.put("userId", user.getId());
                     userInfo.put("country", user.getCountry());
@@ -164,23 +151,24 @@ public class TournamentService {
                 })
                 .collect(Collectors.toList());
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("groupId", groupId);
-        response.put("rankings", rankings);
-        return response;
+        return new GetGroupLeaderboardResponse(rankings,groupId);
     }
 
-    public Map<String, Integer> getCountryLeaderboard(String tournamentId) {
+    public GetCountryLeaderboardResponse getCountryLeaderboard(String tournamentId) {
         List<TournamentParticipation> tournamentParticipations = tournamentParticipationRepository.findByTournamentId(tournamentId);
+
+        if(tournamentParticipations == null){
+            throw new GetGroupLeaderboardExceptions.GroupParticipationsNotFoundException("Group participations not found");
+        }
 
         Map<String, Integer> countryScores = tournamentParticipations.stream()
                 .collect(Collectors.groupingBy(
                         participation -> userRepository.findById(participation.getUserId())
-                                .orElseThrow(() -> new RuntimeException("User not found")).getCountry(),
+                                .orElseThrow(() -> new EnterTournamentExceptions.UserNotFoundException("User Not Found")).getCountry(),
                         Collectors.summingInt(TournamentParticipation::getScore)
                 ));
 
-        return countryScores.entrySet().stream()
+        Map<String,Integer> sortedCountryScores = countryScores.entrySet().stream()
                 .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
@@ -188,5 +176,19 @@ public class TournamentService {
                         (e1, e2) -> e1,
                         LinkedHashMap::new
                 ));
+        return new GetCountryLeaderboardResponse(sortedCountryScores);
+    }
+    public GetGroupRankResponse getGroupRank(String userId,String tournamentId){
+        TournamentParticipation participation = tournamentParticipationRepository.findByUserIdAndTournamentId(userId,tournamentId);
+
+        List<Map<String, Object>> getGroupLeaderboardResponse = getGroupLeaderboard(participation.getGroupId()).getRankings();
+        int rank= 1;
+        for(Map<String,Object> r:getGroupLeaderboardResponse){
+            if(r.get("userId").equals(userId)){
+                break;
+            }
+            rank++;
+        }
+        return new GetGroupRankResponse(rank);
     }
 }

@@ -1,13 +1,12 @@
 package com.dreamgames.backendengineeringcasestudy.tournament.controller;
 
+import com.dreamgames.backendengineeringcasestudy.dto.*;
 import com.dreamgames.backendengineeringcasestudy.tournament.model.Tournament;
 import com.dreamgames.backendengineeringcasestudy.tournament.service.TournamentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/tournaments")
@@ -16,8 +15,9 @@ public class TournamentController {
     private TournamentService tournamentService;
 
     @PostMapping("/enter/{userId}")
-    public ResponseEntity<?> enterTournament(@PathVariable String userId){
-        return tournamentService.enterTournament(userId);
+    public ResponseEntity<EnterTournamentResponse> enterTournament(@PathVariable String userId){
+        EnterTournamentResponse response = tournamentService.enterTournament(userId);
+        return ResponseEntity.ok(response);
     }
     @PostMapping("/create")
     public ResponseEntity<Tournament> createTournament(){
@@ -25,24 +25,30 @@ public class TournamentController {
         return new ResponseEntity<>(response,HttpStatus.OK);
     }
     @PostMapping("/end")
-    public ResponseEntity<?> endTournament(){
-        return tournamentService.endTournament();
+    public ResponseEntity<String> endTournament(){
+        String response = tournamentService.endTournament();
+        return new ResponseEntity<>(response,HttpStatus.OK);
     }
 
     @PostMapping("/claimReward/{userId}")
-    public ResponseEntity<String> claimReward(@PathVariable String userId){
-        String response = tournamentService.claimReward(userId);
-        return new ResponseEntity<>(response,HttpStatus.OK);
+    public ResponseEntity<ClaimRewardResponse> claimReward(@PathVariable String userId){
+        ClaimRewardResponse response = tournamentService.claimReward(userId);
+        return  ResponseEntity.ok(response);
+    }
+    @GetMapping("/getGroupRank/{userId}&{tournamentId}")
+    public ResponseEntity<GetGroupRankResponse> getGroupRank(@PathVariable String userId, @PathVariable String tournamentId){
+        GetGroupRankResponse response = tournamentService.getGroupRank(userId,tournamentId);
+        return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/groupLeaderboard/{groupId}")
-    public ResponseEntity<Map<String,Object>> getGroupLeaderboard(@PathVariable String groupId){
-        Map<String,Object> response = tournamentService.getGroupLeaderboard(groupId);
-        return new ResponseEntity<>(response,HttpStatus.OK);
+    @GetMapping("/getGroupLeaderboard/{groupId}")
+    public ResponseEntity<GetGroupLeaderboardResponse> getGroupLeaderboard(@PathVariable String groupId){
+        GetGroupLeaderboardResponse response = tournamentService.getGroupLeaderboard(groupId);
+        return ResponseEntity.ok(response);
     }
-    @GetMapping("/countryLeaderboard/{tournamentId}")
-    public ResponseEntity<Map<String, Integer>> getCountryLeaderboard(@PathVariable String tournamentId) {
-        Map<String, Integer> leaderboard = tournamentService.getCountryLeaderboard(tournamentId);
-        return new ResponseEntity<>(leaderboard, HttpStatus.OK);
+    @GetMapping("/getCountryLeaderboard/{tournamentId}")
+    public ResponseEntity<GetCountryLeaderboardResponse> getCountryLeaderboard(@PathVariable String tournamentId) {
+        GetCountryLeaderboardResponse response = tournamentService.getCountryLeaderboard(tournamentId);
+        return ResponseEntity.ok(response);
     }
 }

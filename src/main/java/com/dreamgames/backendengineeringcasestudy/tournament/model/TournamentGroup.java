@@ -1,11 +1,6 @@
 package com.dreamgames.backendengineeringcasestudy.tournament.model;
 
 import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-
-import java.io.Serial;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;

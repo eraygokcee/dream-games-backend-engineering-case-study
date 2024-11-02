@@ -8,8 +8,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
-
 @Repository
 public interface TournamentParticipationRepository extends JpaRepository<TournamentParticipation, String> {
     List<TournamentParticipation> findByUserIdAndTournamentStatus(String userId, String status);
@@ -17,7 +15,7 @@ public interface TournamentParticipationRepository extends JpaRepository<Tournam
     List<TournamentParticipation> findByGroupId(String groupId);
     boolean existsByUserIdAndTournamentId(String userId, String tournamentId);
     List<TournamentParticipation>  findByTournamentId(String tournamentId);
-
+    TournamentParticipation findByUserIdAndTournamentId(String userId,String tournamentId);
 
     @Query("SELECT tp.rewardEligible FROM TournamentParticipation tp WHERE tp.userId = :userId AND tp.rewardEligible > 0")
     Integer findRewardEligibleByUserId(@Param("userId") String userId);
