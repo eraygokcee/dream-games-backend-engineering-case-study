@@ -25,7 +25,7 @@ CREATE TABLE tournament_participation (
                                           score INT DEFAULT 0,
                                           reward_eligible INT DEFAULT 0,
                                           FOREIGN KEY (user_id) REFERENCES users(id),
-                                          FOREIGN KEY (tournament_id) REFERENCES tournaments(id),
+                                          FOREIGN KEY (tournament_id) REFERENCES tournaments(id)
 );
 
 
