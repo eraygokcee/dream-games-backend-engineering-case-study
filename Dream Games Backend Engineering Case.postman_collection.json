@@ -1,0 +1,220 @@
+{
+	"info": {
+		"_postman_id": "e19797a2-6da9-45e0-938b-557a3dab0c30",
+		"name": "Dream Games Backend Engineering Case",
+		"description": "This documentation was prepared for the Dream Games Backend Engineering Case. Endpoints such as tournament operations and user operations are explained.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "31565073"
+	},
+	"item": [
+		{
+			"name": "User Layer",
+			"item": [
+				{
+					"name": "CreateUserRequest",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var template = `",
+									"<style type=\"text/css\">",
+									"    .tftable {font-size:14px;color:#333333;width:100%;border-width: 1px;border-color: #87ceeb;border-collapse: collapse;}",
+									"    .tftable th {font-size:18px;background-color:#87ceeb;border-width: 1px;padding: 8px;border-style: solid;border-color: #87ceeb;text-align:left;}",
+									"    .tftable tr {background-color:#ffffff;}",
+									"    .tftable td {font-size:14px;border-width: 1px;padding: 8px;border-style: solid;border-color: #87ceeb;}",
+									"    .tftable tr:hover {background-color:#e0ffff;}",
+									"</style>",
+									"",
+									"<table class=\"tftable\" border=\"1\">",
+									"    <tr>",
+									"        <th>ID</th>",
+									"        <th>Country</th>",
+									"        <th>Level</th>",
+									"        <th>Coins</th>",
+									"    </tr>",
+									"    <tr>",
+									"        <td>{{response.id}}</td>",
+									"        <td>{{response.country}}</td>",
+									"        <td>{{response.level}}</td>",
+									"        <td>{{response.coins}}</td>",
+									"    </tr>",
+									"</table>",
+									"`;",
+									"",
+									"function constructVisualizerPayload() {",
+									"    return {response: pm.response.json()}",
+									"}",
+									"",
+									"pm.visualizer.set(template, constructVisualizerPayload());"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": "{{base_url}}/users/create",
+						"description": "### Create User\n\nThis endpoint is used to create a new user.\n\n#### Request Body\n\n- No request body parameters are required for this endpoint.\n    \n\n#### Response\n\nThe response will be in JSON format and will contain the following fields:\n\n- `id` (string): The unique identifier for the user.\n    \n- `country` (string): The country of the user.\n    \n- `level` (integer): The user's level.\n    \n- `coins` (integer): The number of coins the user has.\n    \n\n#### JSON Schema\n\n``` json\n{\n    \"type\": \"object\",\n    \"properties\": {\n        \"id\": { \"type\": \"string\" },\n        \"country\": { \"type\": \"string\" },\n        \"level\": { \"type\": \"integer\" },\n        \"coins\": { \"type\": \"integer\" }\n    }\n}\n\n ```"
+					},
+					"response": []
+				},
+				{
+					"name": "UpdateLevelRequest",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": "{{base_url}}/users/updateLevel/{{userId}}",
+						"description": "### Request\n\nThe `PUT` request is used to update the level of a specific user identified by `userId`. The request should be sent to `{{base_url}}/users/updateLevel/{{userId}}`.\n\n### Response\n\n#### 200 OK\n\n- `Content-Type`: application/json\n    \n- { \"id\": \"string\", \"country\": \"string\", \"level\": int, \"coins\": int}  \n    Description: This response indicates that the user's level has been successfully updated. It includes the user's ID, country, updated level, and the current number of coins.\n    \n\n#### 404 Not Found\n\n- `Content-Type`: application/json\n    \n- { \"message\": \"string\"}  \n    Description: This response indicates that the user with the specified `userId` was not found for the update operation."
+					},
+					"response": []
+				},
+				{
+					"name": "GetUserRequest",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{base_url}}/users/{{userId}}",
+						"description": "This endpoint retrieves information about a specific user identified by their unique ID. In the event that the user ID is not found, a 404 Not Found response is returned with a JSON body containing a message key indicating the reason for the error.\n\nThis endpoint retrieves the details of a specific user by their ID.\n\n#### Request Parameters\n\n- `userId` (path parameter): The ID of the user for whom the details are to be retrieved.\n    \n\n### Response\n\n#### 200 OK\n\nThe response body contains the following fields:\n\n- `id` (string): The ID of the user.\n    \n- `country` (string): The country of the user.\n    \n- `level` (integer): The level of the user.\n    \n- `coins` (integer): The number of coins associated with the user.\n    \n\n#### 404 Not Found\n\n- `Content-Type`: application/json\n    \n- { \"message\": \"string\"}  \n    Description: This response indicates that the user with the specified `userId` was not found for the update operation."
+					},
+					"response": []
+				}
+			],
+			"description": "The User Layer of this application is responsible for handling all user-related operations, from registration to updating user information.\n\n### Endpoints Overview\n\n#### **CreateUserRequest Endpoint**\n\nWhen a user registers for the first time, a request is sent to this endpoint. Since this is the initial registration, no prior user information is required in the request model.\n\n#### **UpdateLevelRequest Endpoint** (`RequestParam(userId)`)\n\nWhen a user levels up in the game, a request is sent to this endpoint to update their information. The user's level will increase by 1, and they will receive an additional 25 coins.\n\n#### **GetUserRequest Endpoint** (`RequestParam(userId)`)\n\nThis endpoint returns the current record of the user when a request is made."
+		},
+		{
+			"name": "Tournament Layer",
+			"item": [
+				{
+					"name": "ManuallyCreateTournamentRequest",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": "{{base_url}}/tournaments/create",
+						"description": "From this endpoint, a tournament, test, etc. can be created manually for any situation. The tournament will end in one day.\n\nThe `POST /tournaments/create` endpoint is used to create a new tournament. Upon a successful request, the API returns a JSON response with the following properties:\n\n- `id` (string): The unique identifier of the created tournament.\n    \n- `startTime` (string): The start time of the tournament.\n    \n- `endTime` (string): The end time of the tournament.\n    \n- `status` (string): The status of the tournament.\n    \n- `createdAt` (string): The timestamp indicating when the tournament was created.\n    \n\nThis response can be documented as a JSON schema for reference in the API documentation."
+					},
+					"response": []
+				},
+				{
+					"name": "ManuallyEndTournamentRequest",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": "{{base_url}}/tournaments/end",
+						"description": "From this endpoint, a tournament, test, etc. can be finished manually for any situation. When the tournament ends, the reward status is updated according to the users' 1st and 2nd place status.  \nThe API endpoint `POST /tournaments/end` is used to end a tournament.\n\n### Response\n\nThe response returned by this endpoint is a text/plain content type with a status code of 200. The response body contains the message \"Tournament has been end.\"\n\n#### Response JSON Schema\n\n``` json\n{\n  \"type\": \"string\",\n  \"properties\": {\n    \"message\": {\n      \"type\": \"string\"\n    }\n  }\n}\n\n ```"
+					},
+					"response": []
+				},
+				{
+					"name": "EnterTournamentRequest",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": "{{base_url}}/tournaments/enter/{{userId}}",
+						"description": "### Create Tournament Entry\n\nThis endpoint is the starting endpoint of the tournament process. When the user wants to enter the active tournament, he will enter from this endpoint.  \n  \nThis endpoint allows the user to enter a tournament by making an HTTP POST request to the specified URL.\n\n#### Request Body\n\n- `userId` (string) - The ID of the user entering the tournament.\n    \n\n#### Response-200 OK\n\nUpon a successful request, the server responds with a status code of 200 and a JSON object containing the following fields:\n\n- `tournament` (object) - Details of the tournament entered, including ID, start time, end time, status, and creation timestamp.\n    \n- `groupLeaderboard` (object) - Details of the group leaderboard, including group ID and rankings.\n    \n    - `rankings` (array) - List of user rankings within the group, including country, user ID, and tournament score.\n        \n- `message` (string) - Any additional message related to the response.\n    \n\n#### **Error Messages**\n\nWhile the user is registering for the tournament, many conditions are checked. If there is an incorrect registration, the error messages that will be returned are as follows.\n\n#### Response-404 NOT FOUND\n\nIf the user is not registered in the system, an error message is returned.\n\n- message (string) - \"User not found\"\n    \n\n#### Response-201 BAD REQUEST\n\nIf the user has won a prize from a previous tournament, user cannot register for a new tournament without receiving these prizes.\n\n- message (string) - \"You have an unclaimed reward from a previous tournament. Please claim your reward before entering a new tournament.\"\n    \n\n#### Response-404 NOT FOUND\n\nIf there is no active tournament in the system, an error message will be returned.\n\n- message (string) - \"No active tournament available\"\n    \n\n#### Response-201 BAD REQUEST\n\nIf the user is registered for the tournament, he/she will not be able to register again.\n\n- message (string) -\"User has already entered this tournament.\"\n    \n\n#### Response-201 BAD REQUEST\n\nIf the user is lower than level 20 or her balance is below 1000, user will not be able to enter the tournament.\n\n- message (string) - \"User must be at least level 20 to enter the tournament\"\n    \n\n#### Response-201 BAD REQUEST\n\nIf the user is lower than level 20 or her balance is below 1000, user will not be able to enter the tournament.\n\n- message (string) - \"User does not have enough coins to enter the tournament"
+					},
+					"response": []
+				},
+				{
+					"name": "ClaimRewardRequest",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": "{{base_url}}/tournaments/claimReward/{{userId}}",
+						"description": "### Request\n\nThis endpoint allows the user to claim a reward for a specific tournament by making a POST request to the specified URL. The request should include the `userId` as a path parameter.\n\n### Request Body\n\nThis request does not require a request body.\n\n### Response\n\nThe response will be in JSON format with the following schema:\n\n``` json\n{\n    \"type\": \"object\",\n    \"properties\": {\n        \"message\": {\n            \"type\": \"string\"\n        },\n        \"user\": {\n            \"type\": \"object\",\n            \"properties\": {\n                \"id\": {\n                    \"type\": \"string\"\n                },\n                \"country\": {\n                    \"type\": \"string\"\n                },\n                \"level\": {\n                    \"type\": \"integer\"\n                },\n                \"coins\": {\n                    \"type\": \"integer\"\n                }\n            }\n        }\n    }\n}\n\n ```\n\nThe response will include a `message` field and a `user` object containing the user's `id`, `country`, `level`, and `coins`."
+					},
+					"response": []
+				},
+				{
+					"name": "GetGroupRankRequest",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{base_url}}/tournaments/getGroupRank/{{userId}}&{{tournamentId}}",
+						"description": "### Get Group Rank\n\nThis endpoint retrieves the rank of a specific user in a tournament group.\n\n#### Request\n\n- Method: GET\n    \n- URL: `{{base_url}}/tournaments/getGroupRank/{{userId}}&{{tournamentId}}`\n    \n\n#### Response\n\nThe response is in JSON format and has the following schema:\n\n``` json\n{\n    \"type\": \"object\",\n    \"properties\": {\n        \"rank\": {\n            \"type\": \"integer\"\n        }\n    }\n}\n\n ```\n\nThe response body contains the user's rank in the tournament group."
+					},
+					"response": []
+				},
+				{
+					"name": "GetGroupLeaderboardRequest",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{base_url}}/tournaments/getGroupLeaderboard/{{groupId}}",
+						"description": "### Get Group Leaderboard\n\nThis endpoint retrieves the leaderboard for a specific group.\n\n#### Request\n\n- Method: GET\n    \n- URL: `{{base_url}}/tournaments/getGroupLeaderboard/{{groupId}}`\n    \n\n#### Response\n\nThe response will be a JSON object with the following schema:\n\n``` json\n{\n    \"groupId\": \"string\",\n    \"rankings\": [\n        {\n            \"country\": \"string\",\n            \"userId\": \"string\",\n            \"tournamentScore\": 0\n        }\n    ]\n}\n\n ```\n\nThe `groupId` field represents the ID of the group for which the leaderboard is being retrieved. The `rankings` array contains objects with information about the country, user ID, and tournament score of each participant in the group."
+					},
+					"response": []
+				},
+				{
+					"name": "GetCountryLeaderboardRequest",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{base_url}}/tournaments/getCountryLeaderboard/{{tournamentId}}",
+						"description": "### GET /tournaments/getCountryLeaderboard/{{tournamentId}}\n\nThis endpoint retrieves the country leaderboard for a specific tournament.\n\n#### Request\n\nNo request body parameters are required for this endpoint.\n\n- `tournamentId` (path parameter) : The ID of the tournament for which the country leaderboard is being retrieved.\n    \n\n#### Response\n\nThe response will be in JSON format with the following schema:\n\n``` json\n{\n    \"type\": \"object\",\n    \"properties\": {\n        \"data\": {\n            \"type\": \"object\",\n            \"properties\": {\n                \"UnitedStates\": {\n                    \"type\": \"integer\"\n                },\n                \"France\": {\n                    \"type\": \"integer\"\n                },\n                \"Turkey\": {\n                    \"type\": \"integer\"\n                }\n            }\n        }\n    }\n}\n\n ```\n\nThe response will contain the leaderboard data for different countries participating in the tournament, with the number of points scored by each country."
+					},
+					"response": []
+				}
+			],
+			"description": "This layer is the layer where the game's tournament-related transactions are located. A tournament can be created and finished manually on this layer. At the same time, a tournament is created automatically at certain times. Country rankings and group rankings are managed on this layer. The tournament is also entered from this layer."
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "userId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "tournamentId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "groupId",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
